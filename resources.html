@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
+    <title>Folder Tree Structure</title>
+    <style>
+       @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: rgba(50, 50, 50, 1.0000000000);
+    color: #e0e0e0;
+    margin: 20px;
+}
+
+/* Folder and Subfolder Styling */
+.folder, .subfolder {
+    cursor: pointer;
+    font-weight: 550;
+    margin: 8px 0;
+    display: flex;
+    align-items: center;
+    font-size:0.9rem;
+    transition: color 0.3s ease;
+}
+
+
+.folder::before, .subfolder::before {
+    content: "📁"; /* Default closed folder */
+    margin-right: 10px;
+    font-size: 1.2rem;
+    transition: transform 0.3s ease, color 0.3s ease;
+}
+
+/* Expanded folder */
+.expanded::before {
+    content: "📂";
+}
+
+/* Subfolders and nested files */
+.nested {
+    padding-left: 25px;
+    display: none;
+    border-left: 2px solid #444;
+    margin-left: 15px;
+    transition: all 0.3s ease-in-out;
+}
+
+/* File links */
+.file {
+    padding-left: 30px;
+    font-size: 0.9rem
+}
+
+.file a {
+    text-decoration: none;
+    color: #00ccff;
+    font-weight: 400;
+    display: block;
+    transition: color 0.3s ease-in-out;
+}
+
+    </style>
+</head>
+<body>
+
+    <h2>Datasets and Code Resources</h2>
+    <div id="folder-container"></div>
+
+    <script>
+        const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRfJUSaQaqTzvWiQirrEHRSNtp5sK9dNezeG1p9K3N_3GyA9YwDhQIZRuMYskCp33yPO28L31GNrCj1/pub?output=csv"; // Replace with your actual CSV URL
+
+        async function fetchData() {    
+            const response = await fetch(csvUrl);
+            const text = await response.text();
+            const rows = text.split("\n").map(row => row.split(","));
+
+            let folderTree = {};
+
+            for (let i = 1; i < rows.length; i++) {
+                let [folder, subfolder1, subfolder2, fileName, fileLink] = rows[i].map(col => col.trim());
+
+                if (!folderTree[folder]) {
+                    folderTree[folder] = { subfolders: {}, files: [] };
+                }
+
+                if (subfolder1) {
+                    if (!folderTree[folder].subfolders[subfolder1]) {
+                        folderTree[folder].subfolders[subfolder1] = { subfolders: {}, files: [] };
+                    }
+
+                    if (subfolder2) {
+                        if (!folderTree[folder].subfolders[subfolder1].subfolders[subfolder2]) {
+                            folderTree[folder].subfolders[subfolder1].subfolders[subfolder2] = { files: [] };
+                        }
+                        if (fileName) {
+                            folderTree[folder].subfolders[subfolder1].subfolders[subfolder2].files.push({ fileName, fileLink });
+                        }
+                    } else if (fileName) {
+                        folderTree[folder].subfolders[subfolder1].files.push({ fileName, fileLink });
+                    }
+                } else if (fileName) {
+                    folderTree[folder].files.push({ fileName, fileLink });
+                }
+            }
+
+            const container = document.getElementById("folder-container");
+            createFolders(container, folderTree);
+        }
+
+        function createFolders(parentElement, folderTree) {
+            Object.keys(folderTree).forEach(folderName => {
+                const folderDiv = document.createElement("div");
+                folderDiv.classList.add("folder");
+                folderDiv.textContent = folderName;
+
+                const folderContent = document.createElement("div");
+                folderContent.classList.add("nested");
+
+                folderTree[folderName].files.forEach(file => {
+                    const fileLink = document.createElement("a");
+                    fileLink.href = file.fileLink;
+                    fileLink.textContent = file.fileName;
+                    fileLink.target = "_blank";
+                    const fileDiv = document.createElement("div");
+                    fileDiv.classList.add("file");
+                    fileDiv.appendChild(fileLink);
+                    folderContent.appendChild(fileDiv);
+                });
+
+                createSubfolders(folderContent, folderTree[folderName].subfolders);
+
+                folderDiv.addEventListener("click", () => {
+                    const isExpanded = folderContent.style.display === "block";
+                    folderContent.style.display = isExpanded ? "none" : "block";
+                    folderDiv.classList.toggle("expanded", !isExpanded);
+                });
+
+                parentElement.appendChild(folderDiv);
+                parentElement.appendChild(folderContent);
+            });
+        }
+
+        function createSubfolders(parentElement, subfolders) {
+            Object.keys(subfolders).forEach(subfolderName => {
+                const subfolderDiv = document.createElement("div");
+                subfolderDiv.classList.add("subfolder");
+                subfolderDiv.textContent = subfolderName;
+
+                const subfolderContent = document.createElement("div");
+                subfolderContent.classList.add("nested");
+
+                subfolders[subfolderName].files.forEach(file => {
+                    const fileLink = document.createElement("a");
+                    fileLink.href = file.fileLink;
+                    fileLink.textContent = file.fileName;
+                    fileLink.target = "_blank";
+                    const fileDiv = document.createElement("div");
+                    fileDiv.classList.add("file");
+                    fileDiv.appendChild(fileLink);
+                    subfolderContent.appendChild(fileDiv);
+                });
+
+                createSubfolders(subfolderContent, subfolders[subfolderName].subfolders);
+
+                subfolderDiv.addEventListener("click", () => {
+                    const isExpanded = subfolderContent.style.display === "block";
+                    subfolderContent.style.display = isExpanded ? "none" : "block";
+                    subfolderDiv.classList.toggle("expanded", !isExpanded);
+                });
+
+                parentElement.appendChild(subfolderDiv);
+                parentElement.appendChild(subfolderContent);
+            });
+        }
+
+        fetchData();
+    </script>
+
+</body>
+</html>
